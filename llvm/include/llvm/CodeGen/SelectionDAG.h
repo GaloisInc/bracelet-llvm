@@ -294,6 +294,7 @@ class SelectionDAG {
     MDNode *HeapAllocSite = nullptr;
     MDNode *PCSections = nullptr;
     MDNode *MMRA = nullptr;
+    MDNode *GaloisMetadata = nullptr;
     CalledGlobalInfo CalledGlobal{};
     bool NoMerge = false;
   };
@@ -2349,6 +2350,15 @@ public:
   CallSiteInfo getCallSiteInfo(const SDNode *Node) {
     auto I = SDEI.find(Node);
     return I != SDEI.end() ? std::move(I->second).CSInfo : CallSiteInfo();
+  }
+  /// Return GaloisMetadata associated with Node, or nulltpr;
+  llvm::MDNode *getGaloisMetadata(const SDNode *Node) {
+    auto I = SDEI.find(Node);
+    return I != SDEI.end() ? std::move(I->second).GaloisMetadata : nullptr;
+  }
+  /// Set GaloisMetadata to be associated with Node.
+  void addGaloisMetadata(const SDNode *Node, MDNode *MD) {
+    SDEI[Node].GaloisMetadata = MD;
   }
   /// Set HeapAllocSite to be associated with Node.
   void addHeapAllocSite(const SDNode *Node, MDNode *MD) {

@@ -23,9 +23,12 @@
 #include "llvm/CodeGen/MachineJumpTableInfo.h"
 #include "llvm/CodeGen/MachineModuleInfo.h"
 #include "llvm/CodeGen/WinEHFuncInfo.h"
+#include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/IR/DiagnosticInfo.h"
 #include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/Metadata.h"
 #include "llvm/IR/Module.h"
+#include "llvm/Support/Casting.h"
 
 #define DEBUG_TYPE "x86-isel"
 
@@ -2516,6 +2519,15 @@ X86TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
   if (InGlue.getNode())
     Ops.push_back(InGlue);
 
+  auto AddLabMetadata = [&](SDValue nd) {
+    if (CB && CB->hasMetadata(GaloisCallMetadatakey)) {
+      auto *MdNodeCB = CB->getMetadata(GaloisCallMetadatakey);
+      if (auto *Label = llvm::dyn_cast<llvm::DILabel>(MdNodeCB)) {
+        DAG.addGaloisMetadata(nd.getNode(), Label);
+      }
+    }
+  };
+
   if (isTailCall) {
     // We used to do:
     //// If this is the first return lowered for this function, add the regs
@@ -2525,7 +2537,7 @@ X86TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
     // function making a tail call to a function returning int.
     MF.getFrameInfo().setHasTailCall();
     SDValue Ret = DAG.getNode(X86ISD::TC_RETURN, dl, MVT::Other, Ops);
-
+    AddLabMetadata(Ret);
     if (IsCFICall)
       Ret.getNode()->setCFIType(CLI.CFIType->getZExtValue());
 
@@ -2553,8 +2565,12 @@ X86TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
     auto GA = DAG.getTargetGlobalAddress(ARCFn, dl, PtrVT);
     Ops.insert(Ops.begin() + 1, GA);
     Chain = DAG.getNode(X86ISD::CALL_RVMARKER, dl, NodeTys, Ops);
+    // TODO(Ian): This almost certainly is not correct but we probably also dont
+    // care for our usecase
+    AddLabMetadata(Chain);
   } else {
     Chain = DAG.getNode(X86ISD::CALL, dl, NodeTys, Ops);
+    AddLabMetadata(Chain);
   }
 
   if (IsCFICall)

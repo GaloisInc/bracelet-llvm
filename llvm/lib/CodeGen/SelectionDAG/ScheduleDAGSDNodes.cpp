@@ -27,7 +27,9 @@
 #include "llvm/CodeGen/TargetRegisterInfo.h"
 #include "llvm/CodeGen/TargetSubtargetInfo.h"
 #include "llvm/Config/llvm-config.h"
+#include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/IR/MemoryModelRelaxationAnnotations.h"
+#include "llvm/IR/Metadata.h"
 #include "llvm/MC/MCInstrItineraries.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
@@ -869,6 +871,23 @@ EmitSchedule(MachineBasicBlock::iterator &InsertPos) {
       else
         return std::prev(Emitter.getInsertPos());
     };
+
+    llvm::MDNode *GaloisMetadata = DAG->getGaloisMetadata(Node);
+    if (GaloisMetadata) {
+      llvm::DILabel *lab = llvm::cast<llvm::DILabel>(GaloisMetadata);
+      auto DLToUse = Node->getDebugLoc();
+      if (!DLToUse || DLToUse->getScope()->getSubprogram() !=
+                          lab->getScope()->getSubprogram()) {
+        // Force debug location to cohere, we dont truly care that much about
+        // the debug loc
+        DLToUse = DebugLoc(
+            DILocation::get(lab->getContext(), 0, 0, lab->getScope()));
+      }
+
+      auto *MI =
+          Emitter.EmitDbgLabel(DAG->getDbgLabel(lab, DLToUse, 0));
+      Emitter.getBlock()->insert(Emitter.getInsertPos(), MI);
+    }
 
     MachineBasicBlock::iterator Before = GetPrevInsn(Emitter.getInsertPos());
     Emitter.EmitNode(Node, IsClone, IsCloned, VRBaseMap);

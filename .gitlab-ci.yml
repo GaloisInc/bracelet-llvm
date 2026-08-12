@@ -1,0 +1,42 @@
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+  GIT_SUBMODULE_DEPTH: 1
+
+stages:
+  - build
+  - downstream
+
+build-it-cromulence:
+  rules:
+    - if: "$CI_PROJECT_URL =~ /gitlab\\.ebossproject\\.com/"
+  timeout: 4h
+  stage: build
+  image:
+    name: ${CI_REGISTRY}/general/docker-images/docker-builder:latest
+  script:
+    - |
+      cat > galois-ci/sccache.env << EOF
+      export SCCACHE_REGION="us-east-2"
+      export SCCACHE_BUCKET="$S3_EPHEMERAL_BUCKET_NAME"
+      export SCCACHE_S3_KEY_PREFIX="$CI_PROJECT_PATH/sccache/"
+      EOF
+    # The build script misspelles "args" as "agrs", so we need to duplicate the misspelling here.
+    - >
+      KANIKO_EXTRA_ARGS="--compressed-caching=false"
+      KANIKO_EXTRA_AGRS="--compressed-caching=false"
+      TAGS=pipe-${CI_PIPELINE_ID}
+      NAME=llvm
+      DOCKERFILE=galois-ci/build.Dockerfile
+      BUILD_ARGS=BUILD_BASE_PARENT=$CI_REGISTRY/sim-performer/build-base/build-base:main
+      /build.sh
+
+trigger-downstream:
+  stage: downstream
+  trigger: "galois/ci-infra"
+  variables:
+    LLVM_IMAGE: "$CI_REGISTRY/$CI_PROJECT_PATH/llvm:pipe-${CI_PIPELINE_ID}"
+  rules:
+    - if: "$CI_PROJECT_URL =~ /gitlab\\.ebossproject\\.com/"
+
+
+

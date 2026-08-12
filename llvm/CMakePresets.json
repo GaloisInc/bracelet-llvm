@@ -1,0 +1,59 @@
+{
+  "version": 10,
+  "cmakeMinimumRequired": {
+    "major": 4,
+    "minor": 0,
+    "patch": 2
+  },
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "Default Config",
+      "description": "Default build using Ninja generator",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/default",
+      "installDir": "${sourceDir}/install/default",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "1",
+        "LLVM_ENABLE_PROJECTS": "clang;lld;lldb",
+        "LLVM_TARGETS_TO_BUILD": "X86;AArch64",
+        "BUILD_SHARED_LIBS": "ON",
+        "LLVM_APPEND_VC_REV": "OFF",
+        "LLVM_OPTIMIZED_TABLEGEN": "ON",
+        "LLVM_USE_SPLIT_DWARF": "ON",
+        "CMAKE_C_COMPILER_LAUNCHER": "ccache",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
+        "LLDB_ENABLE_PYTHON": "ON",
+        "LLVM_ENABLE_ASSERTIONS": "ON",
+        "LLDB_INCLUDE_TESTS": "OFF",
+        "LLDB_USE_SYSTEM_DEBUGSERVER": "ON",
+        "LLVM_GALOISREACHABILITY_LINK_INTO_TOOLS": "ON",
+        "LLVM_ENABLE_ZSTD": "FORCE_ON",
+        "LLVM_ENABLE_RUNTIMES": "compiler-rt"
+      }
+    },
+    {
+      "name": "devcontainer",
+      "displayName": "Dev container",
+      "inherits": "default",
+      "environment": {
+        "CCACHE_DIR": "/volumes/ccache"
+      },
+      "binaryDir": "${sourceDir}/build/devcontainer",
+      "installDir": "${sourceDir}/install/devcontainer"
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "default",
+      "configurePreset": "default"
+    },
+    {
+      "name": "devcontainer",
+      "configurePreset": "devcontainer"
+    }
+  ]
+}

@@ -63,6 +63,9 @@
 
 namespace llvm {
 
+/// The metadata kind for GALOIS Call lables
+const std::string GaloisCallMetadatakey = "GALOIS_LABEL_STRING";
+
 class AssumptionCache;
 class CCState;
 class CCValAssign;

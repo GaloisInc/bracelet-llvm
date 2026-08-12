@@ -3516,6 +3516,16 @@ bool X86FastISel::fastLowerCall(CallLoweringInfo &CLI) {
 
   // Issue the call.
   MachineInstrBuilder MIB;
+
+  if (CB && CB->hasMetadata(GaloisCallMetadatakey)) {
+    auto *MdNodeCB = CB->getMetadata(GaloisCallMetadatakey);
+    if (auto *Label = llvm::dyn_cast<llvm::DILabel>(MdNodeCB)) {
+      const MCInstrDesc &II = TII.get(TargetOpcode::DBG_LABEL);
+      MachineInstrBuilder LABMIB =
+          BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, II);
+      LABMIB.addMetadata(Label);
+    }
+  }
   if (CalleeOp) {
     // Register-indirect call.
     unsigned CallOpc = Is64Bit ? X86::CALL64r : X86::CALL32r;
